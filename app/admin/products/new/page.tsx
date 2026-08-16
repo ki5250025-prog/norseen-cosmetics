@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { ImagePlus, Loader2, Save, X } from "lucide-react";
-import { ChangeEvent, FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 
 type ImagePreview = {
   file: File;
@@ -17,10 +17,31 @@ export default function NewProductPage() {
   const [descriptionEn, setDescriptionEn] = useState("");
   const [descriptionAr, setDescriptionAr] = useState("");
   const [price, setPrice] = useState("");
+  const [discountPercent, setDiscountPercent] = useState("");
   const [costPrice, setCostPrice] = useState("");
   const [stock, setStock] = useState("");
   const [sku, setSku] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [categories, setCategories] = useState<any[]>([]);
   const [images, setImages] = useState<ImagePreview[]>([]);
+
+  useEffect(() => {
+    async function loadCategories() {
+      const supabase = createClient();
+
+      const { data, error } = await supabase
+        .from("categories")
+        .select("id, name_ar, name_en")
+        .eq("is_active", true)
+        .order("name_ar");
+
+      if (!error) {
+        setCategories(data || []);
+      }
+    }
+
+    loadCategories();
+  }, []);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -74,6 +95,9 @@ export default function NewProductPage() {
           description_en: descriptionEn || null,
           description_ar: descriptionAr || null,
           price: Number(price),
+          category_id: categoryId || null,
+          discount_percent: Number(discountPercent || 0),
+          discount_percent: Number(discountPercent || 0),
           cost_price: Number(costPrice),
           stock: Number(stock),
           sku: sku.toUpperCase(),
@@ -175,7 +199,27 @@ export default function NewProductPage() {
             </h2>
 
             <div className="mt-6 grid gap-6 md:grid-cols-2">
-              <label className="text-sm">
+              <div className="mb-5">
+                    <label className="mb-2 block text-sm font-medium text-[#3B302D]">
+                      القسم *
+                    </label>
+
+                    <select
+                      value={categoryId}
+                      onChange={(e) => setCategoryId(e.target.value)}
+                      className="w-full rounded-xl border border-[#E5DDD8] bg-white px-4 py-3 outline-none focus:border-[#B9897D]"
+                    >
+                      <option value="">اختر القسم</option>
+
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name_ar} - {category.name_en}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <label className="text-sm">
                 Product Name — English *
                 <input
                   value={nameEn}
@@ -263,6 +307,59 @@ export default function NewProductPage() {
                 </div>
               </label>
 
+              <div className="sm:col-span-2">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-[#3B302D]">
+                      الخصم (%)
+                    </label>
+
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value={discountPercent}
+                      onChange={(e) => {
+                        const value = Math.min(
+                          100,
+                          Math.max(0, Number(e.target.value))
+                        );
+
+                        setDiscountPercent(
+                          e.target.value === "" ? "" : String(value)
+                        );
+                      }}
+                      placeholder="مثال: 20"
+                      className="w-full rounded-xl border border-[#E5DDD8] px-4 py-3 outline-none focus:border-[#B9897D]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-[#3B302D]">
+                      السعر بعد الخصم
+                    </label>
+
+                    <div className="flex h-[50px] items-center rounded-xl border border-[#B9897D] bg-[#FCF8F6] px-4">
+                      <span className="text-lg font-semibold text-[#8F6259]">
+                        {price
+                          ? (
+                              Number(price) *
+                              (1 -
+                                Number(discountPercent || 0) /
+                                  100)
+                            ).toFixed(2)
+                          : "0.00"}
+                      </span>
+
+                      <span className="mr-2 text-sm text-[#756862]">
+                        EGP
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <label className="text-sm">
                 Stock *
                 <input
@@ -287,16 +384,52 @@ export default function NewProductPage() {
             </div>
 
             {price && costPrice && (
-              <div className="mt-6 rounded-xl bg-[#FAF6F2] p-5">
-                <p className="text-xs text-[#756862]">
-                  Estimated profit per item
-                </p>
+                  <div className="mt-4 rounded-xl border border-[#E8DDD8] bg-[#FCF8F6] p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-[#756862]">
+                        سعر البيع الفعلي
+                      </span>
 
-                <p className="mt-1 text-2xl font-semibold text-[#8F6259]">
-                  {(Number(price) - Number(costPrice)).toFixed(2)} EGP
-                </p>
-              </div>
-            )}
+                      <span className="font-semibold text-[#3B302D]">
+                        {(
+                          Number(price) *
+                          (1 -
+                            Number(discountPercent || 0) / 100)
+                        ).toFixed(2)}{" "}
+                        EGP
+                      </span>
+                    </div>
+
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-sm text-[#756862]">
+                        سعر التكلفة
+                      </span>
+
+                      <span className="text-sm text-[#756862]">
+                        {Number(costPrice).toFixed(2)} EGP
+                      </span>
+                    </div>
+
+                    <div className="mt-3 border-t border-[#E8DDD8] pt-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-[#3B302D]">
+                          صافي الربح
+                        </span>
+
+                        <span className="text-lg font-bold text-[#8F6259]">
+                          {(
+                            Number(price) *
+                              (1 -
+                                Number(discountPercent || 0) /
+                                  100) -
+                            Number(costPrice)
+                          ).toFixed(2)}{" "}
+                          EGP
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
           </section>
 
           <section className="rounded-2xl border border-[#E5DDD8] bg-white p-6 md:p-8">
