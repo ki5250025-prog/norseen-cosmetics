@@ -184,12 +184,13 @@ export default function CategoriesPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <button
+                    <a
+                      href={`/admin/categories/edit?id=${category.id}`}
                       className="rounded-lg border border-[#E5DDD8] p-2 text-[#756862] hover:bg-[#F7F3F0]"
                       title="تعديل"
                     >
                       <Pencil size={17} />
-                    </button>
+                    </a>
 
                     <button
                       onClick={() => deleteCategory(category.id)}

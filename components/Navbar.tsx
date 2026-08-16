@@ -1,7 +1,9 @@
 "use client";
 
-import { Heart, Menu, Search, ShoppingBag, X } from "lucide-react";
+import { Heart, Menu, Search, X } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
+import CartIcon from "./CartIcon";
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -44,12 +46,7 @@ export default function Navbar() {
               <Heart size={19} strokeWidth={1.5} />
             </button>
 
-            <button className="relative hover:text-[#B9897D]" aria-label="Shopping bag">
-              <ShoppingBag size={19} strokeWidth={1.5} />
-              <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-[#B9897D] text-[8px] text-white">
-                0
-              </span>
-            </button>
+            <CartIcon />
 
             <button className="hidden border-l border-[#D8B5AA] pl-4 text-[10px] tracking-widest sm:block">
               AR

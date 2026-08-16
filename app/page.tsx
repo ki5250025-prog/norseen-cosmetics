@@ -1,9 +1,46 @@
+import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import { createClient } from "@/lib/supabase/server";
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+
+  const [{ data: categories }, { data: products }] = await Promise.all([
+    supabase
+      .from("categories")
+      .select("id, name_ar, name_en, slug, image_url")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true }),
+
+    supabase
+      .from("products")
+      .select(`
+        id,
+        name_ar,
+        name_en,
+        slug,
+        price,
+        discount_percent,
+        is_featured,
+        is_best_seller,
+        is_new_arrival,
+        product_images (
+          image_url,
+          is_primary
+        )
+      `)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const featuredProducts =
+    products?.filter((product) => product.is_featured) ?? [];
+
+  const displayProducts =
+    featuredProducts.length > 0 ? featuredProducts : products?.slice(0, 8) ?? [];
+
   return (
     <main className="min-h-screen bg-[#FAF6F2] text-[#3B302D]">
-      {/* Announcement Bar */}
       <div className="bg-[#3B302D] px-4 py-2 text-center text-xs tracking-[0.2em] text-white">
         FREE SHIPPING ON ORDERS OVER 1000 EGP
       </div>
@@ -31,13 +68,19 @@ export default function Home() {
             </p>
 
             <div className="mt-9 flex flex-wrap gap-4">
-              <button className="bg-[#3B302D] px-8 py-4 text-xs tracking-[0.2em] text-white transition hover:bg-[#B9897D]">
+              <Link
+                href="/shop"
+                className="bg-[#3B302D] px-8 py-4 text-xs tracking-[0.2em] text-white transition hover:bg-[#B9897D]"
+              >
                 SHOP NOW
-              </button>
+              </Link>
 
-              <button className="border border-[#B9897D] px-8 py-4 text-xs tracking-[0.2em] text-[#3B302D] transition hover:bg-[#B9897D] hover:text-white">
+              <a
+                href="#categories"
+                className="border border-[#B9897D] px-8 py-4 text-xs tracking-[0.2em] text-[#3B302D] transition hover:bg-[#B9897D] hover:text-white"
+              >
                 EXPLORE COLLECTION
-              </button>
+              </a>
             </div>
           </div>
 
@@ -47,9 +90,7 @@ export default function Home() {
             <div className="relative flex h-[460px] w-[360px] items-center justify-center border border-[#D8B5AA]/50 bg-gradient-to-b from-[#F3D9D5] to-[#E8D8CC] shadow-2xl">
               <div className="text-center">
                 <div className="font-serif text-8xl text-[#B9897D]">N</div>
-                <div className="mt-2 text-xs tracking-[0.5em]">
-                  NORSEEN
-                </div>
+                <div className="mt-2 text-xs tracking-[0.5em]">NORSEEN</div>
                 <div className="mt-2 text-[8px] tracking-[0.35em]">
                   COSMATICS
                 </div>
@@ -74,15 +115,11 @@ export default function Home() {
             At Norseen, beauty is more than a look. It is confidence,
             elegance, and the little details that make you feel uniquely you.
           </p>
-
-          <button className="mt-8 border-b border-[#B9897D] pb-2 text-xs tracking-[0.2em]">
-            DISCOVER OUR STORY
-          </button>
         </div>
       </section>
 
       {/* Categories */}
-      <section className="mx-auto max-w-7xl px-6 py-24">
+      <section id="categories" className="mx-auto max-w-7xl px-6 py-24">
         <div className="mb-12 text-center">
           <p className="text-xs tracking-[0.4em] text-[#B9897D]">
             EXPLORE
@@ -94,29 +131,132 @@ export default function Home() {
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            "MAKEUP",
-            "SKINCARE",
-            "LIPS",
-            "BEAUTY TOOLS",
-          ].map((category) => (
-            <div
-              key={category}
+          {categories?.map((category) => (
+            <Link
+              key={category.id}
+              href={`/shop?category=${category.slug}`}
               className="group relative flex h-72 cursor-pointer items-end overflow-hidden bg-[#F3D9D5] p-6 transition hover:-translate-y-1"
             >
-              <div className="absolute inset-0 bg-gradient-to-t from-[#3B302D]/60 to-transparent" />
+              {category.image_url && (
+                <img
+                  src={category.image_url}
+                  alt={category.name_en}
+                  className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                />
+              )}
+
+              <div className="absolute inset-0 bg-gradient-to-t from-[#3B302D]/70 to-transparent" />
 
               <div className="relative z-10 text-white">
-                <p className="text-xs tracking-[0.25em]">
-                  NORSEEN
-                </p>
+                <p className="text-xs tracking-[0.25em]">NORSEEN</p>
 
                 <h3 className="mt-2 font-serif text-2xl">
-                  {category}
+                  {category.name_en}
                 </h3>
+
+                <p className="mt-1 text-sm text-white/80">
+                  {category.name_ar}
+                </p>
               </div>
-            </div>
+            </Link>
           ))}
+
+          {!categories?.length && (
+            <div className="col-span-full py-16 text-center text-sm text-[#756862]">
+              No categories available yet.
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Products */}
+      <section className="bg-white px-6 py-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-12 text-center">
+            <p className="text-xs tracking-[0.4em] text-[#B9897D]">
+              NORSEEN BEAUTY
+            </p>
+
+            <h2 className="mt-4 font-serif text-4xl">
+              Featured Products
+            </h2>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {displayProducts.map((product) => {
+              const primaryImage =
+                product.product_images?.find((image) => image.is_primary) ??
+                product.product_images?.[0];
+
+              const hasDiscount = Number(product.discount_percent) > 0;
+
+              const finalPrice = hasDiscount
+                ? Number(product.price) -
+                  (Number(product.price) * Number(product.discount_percent)) / 100
+                : Number(product.price);
+
+              return (
+                <Link
+                  key={product.id}
+                  href={`/shop/${product.slug}`}
+                  className="group"
+                >
+                  <div className="relative aspect-square overflow-hidden bg-[#F3D9D5]">
+                    {primaryImage?.image_url ? (
+                      <img
+                        src={primaryImage.image_url}
+                        alt={product.name_en}
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <span className="font-serif text-5xl text-[#B9897D]">
+                          N
+                        </span>
+                      </div>
+                    )}
+
+                    {hasDiscount && (
+                      <span className="absolute left-3 top-3 bg-[#3B302D] px-3 py-1 text-[10px] tracking-widest text-white">
+                        SALE
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="pt-4">
+                    <p className="text-xs text-[#B9897D]">
+                      {product.name_ar}
+                    </p>
+
+                    <h3 className="mt-1 font-serif text-lg">
+                      {product.name_en}
+                    </h3>
+
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="text-sm font-medium">
+                        {hasDiscount
+                          ? finalPrice.toFixed(2)
+                          : Number(product.price).toFixed(2)}{" "}
+                        EGP
+                      </span>
+
+                      {hasDiscount && (
+                        <span className="text-xs text-[#9B8D87] line-through">
+                          {Number(product.price).toFixed(2)} EGP
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+
+          {!displayProducts.length && (
+            <div className="py-16 text-center text-sm text-[#756862]">
+              Products will appear here once they are added from the dashboard.
+            </div>
+          )}
         </div>
       </section>
 

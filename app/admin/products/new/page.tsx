@@ -97,7 +97,6 @@ export default function NewProductPage() {
           price: Number(price),
           category_id: categoryId || null,
           discount_percent: Number(discountPercent || 0),
-          discount_percent: Number(discountPercent || 0),
           cost_price: Number(costPrice),
           stock: Number(stock),
           sku: sku.toUpperCase(),
